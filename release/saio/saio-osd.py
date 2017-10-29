@@ -109,6 +109,10 @@ configOSD.add_section('protocol')
 configOSD.set('protocol', 'version', 1)
 configOSD.add_section('data')
 configOSD.set('data', 'voltage', '-.--')
+<<<<<<< HEAD
+=======
+configOSD.set('data', 'current', '--.-')#YaYa
+>>>>>>> b2ea394d2549aa238b9b85840dcdb58ba922964b
 configOSD.set('data', 'temperature', '--.-')
 configOSD.set('data', 'showdebug', 1)
 configOSD.set('data', 'showwifi', 0)
@@ -158,10 +162,16 @@ if (os.path.isfile(config_file)):
     # Analyse values
     if (configMAIN.get('main', 'mode') == "TESTER" ):
       settings_shutdown = 0
+<<<<<<< HEAD
 
     if (configMAIN.get('main', 'autoshutdown') == "True" ):
       lowVolt_autoShutdown = True
 
+=======
+    if (configMAIN.get('main', 'LOWBAT-AUTOSHUTDOWN') == 1 ):#YaYa
+    settings_auto_shutdown_lowbatt = 1#YaYa
+    
+>>>>>>> b2ea394d2549aa238b9b85840dcdb58ba922964b
   except Exception as e:
     logging.exception("ERROR: could not load configMAIN file");
 else:
@@ -328,6 +338,10 @@ def doShutdown():
 # Create ini configOSD
 def createINI(volt, temp, debug, wifi, mute, file):
   configOSD.set('data', 'voltage', volt)
+<<<<<<< HEAD
+=======
+  configOSD.set('data', 'current', curr)#YaYa
+>>>>>>> b2ea394d2549aa238b9b85840dcdb58ba922964b
   configOSD.set('data', 'temperature', temp)
   configOSD.set('data', 'showdebug', debug)
   configOSD.set('data', 'showwifi', wifi)
@@ -366,6 +380,7 @@ try:
       checkShdn()
 
     volt = readVoltage()
+    curr = readCurrent()#YaYa
     temp = checkTemperature()
     debug = readModeDebug()
     wifi = readModeWifi()
