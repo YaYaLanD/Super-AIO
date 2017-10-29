@@ -1,6 +1,6 @@
 #
 # This script gets sourced on boot
-# It should exist as /boot/config-saio.ini
+# It should exist as /boot/config-saio.txt
 #
 
 # Mode to boot in, TESTER will run a debug app
