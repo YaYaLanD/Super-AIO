@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 #sudo apt-get install python-serial
 
-# 
+#
 # This file originates from Kite's Super AIO control board project.
 # Author: Kite (Giles Burgess)
-# 
+#
 # THIS HEADER MUST REMAIN WITH THIS FILE AT ALL TIMES
 #
 # This firmware is free software: you can redistribute it and/or modify
@@ -21,7 +21,7 @@
 # along with this repo. If not, see <http://www.gnu.org/licenses/>.
 #
 
-import RPi.GPIO as GPIO 
+import RPi.GPIO as GPIO
 import time
 import os,signal,sys
 import serial
@@ -50,7 +50,7 @@ serport = '/dev/ttyACM0'
 
 # Software variables
 settings_shutdown = 1 #Enable ability to shut down system
-settings_auto_shutdown_lowbatt = 0 #Enable ability to auto shut down system on very low batt
+lowVolt_autoShutdown = False
 
 # Setup
 logging.basicConfig(level=logging.DEBUG)
@@ -65,16 +65,15 @@ GPIO.setup(pi_overtemp, GPIO.OUT)
 GPIO.output(pi_overtemp, GPIO.HIGH)
 
 # Batt variables
-voltscale = 203.5 #ADJUST THIS
-currscale = 640.0
+voltscale = 203.5
 resdivmul = 4.0
 resdivval = 1000.0
 dacres = 33.0
 dacmax = 1023.0
 
 batt_threshold = 4
-batt_low = 330
-batt_shdn = 320
+batt_low = 380#330
+batt_shdn = 370#320
 batt_islow = False
 
 temperature_max = 60.0
@@ -103,15 +102,13 @@ try:
 except Exception as e:
   logging.exception("ERROR: Failed to open serial port");
   sys.exit(1);
-  
+
 # Set up configOSD file
 configOSD = ConfigParser()
 configOSD.add_section('protocol')
 configOSD.set('protocol', 'version', 1)
 configOSD.add_section('data')
-# Read config file and write what's needed here ------------------------------------------
 configOSD.set('data', 'voltage', '-.--')
-configOSD.set('data', 'current', '--.-')#YaYa
 configOSD.set('data', 'temperature', '--.-')
 configOSD.set('data', 'showdebug', 1)
 configOSD.set('data', 'showwifi', 0)
@@ -123,7 +120,7 @@ try:
 except Expection as e:
   logging.exception("ERROR: Failed to create configOSD file");
   sys.exit(1);
-    
+
 # Set up OSD service
 try:
   osd_proc = subprocess.Popen([osd_path, "-d", ini_data_file, "-c", ini_config_file])
@@ -144,11 +141,11 @@ class FakeSecHead(object):
 
   def readline(self):
     if self.sechead:
-      try: 
+      try:
         return self.sechead
-      finally: 
+      finally:
         self.sechead = None
-    else: 
+    else:
       return self.fp.readline()
 
 # Set up a settings config file
@@ -157,13 +154,14 @@ if (os.path.isfile(config_file)):
   try:
     configMAIN = ConfigParser()
     configMAIN.readfp(FakeSecHead(open(config_file)))
-    
+
     # Analyse values
     if (configMAIN.get('main', 'mode') == "TESTER" ):
       settings_shutdown = 0
-    if (configMAIN.get('main', 'LOWBAT-AUTOSHUTDOWN') == 1 ):#YaYa
-    settings_auto_shutdown_lowbatt = 1#YaYa
-    
+
+    if (configMAIN.get('main', 'autoshutdown') == "True" ):
+      lowVolt_autoShutdown = True
+
   except Exception as e:
     logging.exception("ERROR: could not load configMAIN file");
 else:
@@ -182,43 +180,38 @@ def checkLowb():
 
 # Read voltage
 def readVoltage():
-  ser.write('V')
-  voltVal = int(ser.readline().rstrip('\r\n'))
-  volt = int((( voltVal * voltscale * dacres + ( dacmax * 5 ) ) / (( dacres * resdivval ) / resdivmul)))
-  
-  logging.info("VoltVal [" + str(voltVal) + "]")
-  logging.info("Volt    [" + str(volt) + "]V")
-  
-  global batt_islow
-  
-  if (batt_islow):
-    if (volt > batt_low + batt_threshold):
-      batt_islow = False
-      logging.info("BATT OK")
-    if (volt < batt_shdn):
-      logging.info("VERY LOW BATT")
-      #doShutdown()
-      
-  else:
-    if (volt < batt_low):
-      batt_islow = True
-      logging.info("LOW BATT")
-  
-  return volt
+    ser.write('V')
+    voltVal = int(ser.readline().rstrip('\r\n'))
+    volt = int((( voltVal * voltscale * dacres + ( dacmax * 5 ) ) / (( dacres * resdivval ) / resdivmul)))
+
+    logging.info("VoltVal [" + str(voltVal) + "]")
+    logging.info("Volt    [" + str(volt) + "]V")
+
+    global batt_islow
+    logging.info("Is the battery low ?")
+    logging.info(batt_islow)
+    logging.info("--------------------")
+    if (batt_islow):
+        if (volt > batt_low + batt_threshold):
+            batt_islow = False
+            logging.info("BATT OK")
+        if (volt < batt_shdn):
+            logging.info("VERY LOW BATT")
+            if (lowVolt_autoShutdown):
+                logging.info("IMMEDIATE SHUTDOWN")
+                doPngOverlay("./ICON_BATT_LONG.png")
+                #doShutdown()
+
+    else:
+        if (volt < batt_low):
+            batt_islow = True
+            logging.info("LOW BATT")
+
+    return volt
 
 # Get voltage percent
 def getVoltagepercent(volt):
   return clamp(int( float(volt - batt_shdn)/float(420 - batt_shdn)*100 ), 0, 100)
-
-# Read current
-def readCurrent():
-  ser.write('C')
-  currVal = int(ser.readline().rstrip('\r\n'))
-  curr = int((currVal * (dacres / (dacmax*10)) * currscale))
-  
-  logging.info("CurrVal [" + str(currVal) + "]")
-  logging.info("Curr    [" + str(curr) + "]mA")
-  return curr
 
 # Read mode
 def readModeDebug():
@@ -230,13 +223,13 @@ def readModeDebug():
 # Read wifi
 def readModeWifi():
   ret = wifi_off
-  
+
   ser.write('w')
   wifiVal = int(ser.readline().rstrip('\r\n'))
   logging.info("Wifi    [" + str(wifiVal) + "]")
-  
+
   global wifi_state
-  
+
   if (wifiVal):
     if (wifi_state != 'ON'):
       wifi_state = 'ON'
@@ -283,7 +276,7 @@ def readModeWifi():
       except Exception, e:
         logging.info("Wifi    : " + str(e.output))
       ret = wifi_error
-  
+
   return ret
 
 # Read mute
@@ -304,9 +297,9 @@ def getCPUtemperature():
 # Check temp
 def checkTemperature():
   temp = getCPUtemperature()
-  
+
   global temperature_isover
-  
+
   if (temperature_isover):
     if (temp < temperature_max - temperature_threshold):
       temperature_isover = False
@@ -333,10 +326,8 @@ def doShutdown():
   sys.exit(0)
 
 # Create ini configOSD
-def createINI(volt, curr, temp, debug, wifi, mute, file):
-  #configOSD.set('data', 'voltage', '{0:.2f}'.format(volt/100.00))
+def createINI(volt, temp, debug, wifi, mute, file):
   configOSD.set('data', 'voltage', volt)
-  configOSD.set('data', 'current', curr)#YaYa
   configOSD.set('data', 'temperature', temp)
   configOSD.set('data', 'showdebug', debug)
   configOSD.set('data', 'showwifi', wifi)
@@ -344,7 +335,7 @@ def createINI(volt, curr, temp, debug, wifi, mute, file):
 
   with open(ini_data_file, 'w') as configfile:
     configOSD.write(configfile)
-  
+
   osd_proc.send_signal(signal.SIGUSR1)
 
 # Show MP4 overlay
@@ -370,21 +361,20 @@ def clamp(n, minn, maxn):
 try:
   print "STARTED!"
   while 1:
-    
+
     if (settings_shutdown):
       checkShdn()
-    
+
     volt = readVoltage()
-    curr = readCurrent()#YaYa
     temp = checkTemperature()
     debug = readModeDebug()
     wifi = readModeWifi()
-    mute = readModeMute()    
+    mute = readModeMute()
 
-    createINI(volt, 0, temp, debug, wifi, mute, ini_data_file)
-    
+    createINI(volt, temp, debug, wifi, mute, ini_data_file)
+
     time.sleep(3);
-  
+
 except KeyboardInterrupt:
   GPIO.cleanup
   osd_proc.terminate()
