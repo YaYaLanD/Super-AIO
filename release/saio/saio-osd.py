@@ -72,8 +72,8 @@ dacres = 33.0
 dacmax = 1023.0
 
 batt_threshold = 4
-batt_low = 380#330
-batt_shdn = 370#320
+batt_low = 330
+batt_shdn = 320
 batt_islow = False
 
 temperature_max = 60.0
@@ -199,8 +199,9 @@ def readVoltage():
             logging.info("VERY LOW BATT")
             if (lowVolt_autoShutdown):
                 logging.info("IMMEDIATE SHUTDOWN")
-                doPngOverlay("~/Super-AIO/release/saio/osd/resources/lowbattery-320x240.png")
-                #doShutdown()
+                doVidOverlay("~/Super-AIO/release/saio/osd/resources/countdown.mp4")
+                doPngOverlay("~/Super-AIO/release/saio/osd/resources/shutdown-screen-320x240.png")
+                doShutdown()
 
     else:
         if (volt < batt_low):
@@ -341,7 +342,7 @@ def createINI(volt, temp, debug, wifi, mute, file):
 
 # Show MP4 overlay
 def doVidOverlay(overlay):
-  os.system("/usr/bin/omxplayer --no-osd --layer 999999 " + overlay + " --alpha 160;");
+  os.system("/usr/bin/omxplayer -o alsa --no-osd --layer 999999 " + overlay + " --alpha 160;");
 
 # Show PNG overlay
 def doPngOverlay(overlay):
