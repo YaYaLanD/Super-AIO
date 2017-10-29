@@ -199,13 +199,14 @@ def readVoltage():
             logging.info("VERY LOW BATT")
             if (lowVolt_autoShutdown):
                 logging.info("IMMEDIATE SHUTDOWN")
-                doPngOverlay("./ICON_BATT_LONG.png")
+                doPngOverlay("~/Super-AIO/release/saio/osd/resources/lowbattery-320x240.png")
                 #doShutdown()
 
     else:
         if (volt < batt_low):
             batt_islow = True
             logging.info("LOW BATT")
+            doPngOverlay("~/Super-AIO/release/saio/osd/resources/lowbattery-320x240.png")
 
     return volt
 
@@ -349,7 +350,7 @@ def doPngOverlay(overlay):
   except:
     pass
   try:
-    os.system("./pngview -b 0 -l 999999 " + overlay + "&");
+    os.system("~/Super-AIO/release/saio/pngview -b 0 -l 999999 " + overlay + "&");
   except:
     pass
 
@@ -366,7 +367,6 @@ try:
       checkShdn()
 
     volt = readVoltage()
-    curr = readCurrent()#YaYa
     temp = checkTemperature()
     debug = readModeDebug()
     wifi = readModeWifi()
