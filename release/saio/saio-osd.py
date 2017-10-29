@@ -50,6 +50,7 @@ serport = '/dev/ttyACM0'
 
 # Software variables
 settings_shutdown = 1 #Enable ability to shut down system
+settings_auto_shutdown_lowbatt = 0 #Enable ability to auto shut down system on very low batt
 
 # Setup
 logging.basicConfig(level=logging.DEBUG)
@@ -108,7 +109,9 @@ configOSD = ConfigParser()
 configOSD.add_section('protocol')
 configOSD.set('protocol', 'version', 1)
 configOSD.add_section('data')
+# Read config file and write what's needed here ------------------------------------------
 configOSD.set('data', 'voltage', '-.--')
+configOSD.set('data', 'current', '--.-')
 configOSD.set('data', 'temperature', '--.-')
 configOSD.set('data', 'showdebug', 1)
 configOSD.set('data', 'showwifi', 0)
@@ -158,6 +161,8 @@ if (os.path.isfile(config_file)):
     # Analyse values
     if (configMAIN.get('main', 'mode') == "TESTER" ):
       settings_shutdown = 0
+    if (configMAIN.get('main', 'LOWBAT-AUTOSHUTDOWN') == 1 ):
+    settings_auto_shutdown_lowbatt = 1
     
   except Exception as e:
     logging.exception("ERROR: could not load configMAIN file");
@@ -331,6 +336,7 @@ def doShutdown():
 def createINI(volt, curr, temp, debug, wifi, mute, file):
   #configOSD.set('data', 'voltage', '{0:.2f}'.format(volt/100.00))
   configOSD.set('data', 'voltage', volt)
+  configOSD.set('data', 'current', curr)
   configOSD.set('data', 'temperature', temp)
   configOSD.set('data', 'showdebug', debug)
   configOSD.set('data', 'showwifi', wifi)
