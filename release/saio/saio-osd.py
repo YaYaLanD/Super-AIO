@@ -351,7 +351,7 @@ def doPngOverlay(overlay):
   except:
     pass
   try:
-    os.system("~/Super-AIO/release/saio/pngview -b 0 -l 999999 " + overlay + "&");
+    os.system("~/Super-AIO/release/tester/pngview -b 0 -l 999999 " + overlay + "&");
   except:
     pass
 
