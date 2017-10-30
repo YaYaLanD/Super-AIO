@@ -71,11 +71,13 @@ resdivval = 1000.0
 dacres = 33.0
 dacmax = 1023.0
 
+# Battery low level variables
 batt_threshold = 4
 batt_low = 330
 batt_shdn = 320
 batt_islow = False
 
+# Temperature management for the fan
 temperature_max = 60.0
 temperature_threshold = 5.0
 temperature_isover = False
